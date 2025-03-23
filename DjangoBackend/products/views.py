@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from products.models import Product, User
+from products.rabbitmq import send_to_queue, publish
 from products.serializers import ProductSerializer, UserSerializer
 
 
@@ -18,6 +19,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             return Response([], status=status.HTTP_200_OK)
 
         queryset_serializer = self.get_serializer(queryset, many=True)
+        publish()
         return Response(queryset_serializer.data, status=status.HTTP_200_OK)
 
     def retrieve(self, request, pk=None, *args, **kwargs):
@@ -37,6 +39,20 @@ class ProductViewSet(viewsets.ModelViewSet):
         product.delete()
         return Response({"message": "Delete successfully"},status=status.HTTP_204_NO_CONTENT)
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        product = serializer.save()
+
+        # Send product data to RabbitMQ
+        send_to_queue({
+            "id": product.id,
+            "name": product.name,
+            "price": product.price,
+            "description": product.description
+        })
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
@@ -48,12 +64,6 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             return Response([], status=status.HTTP_200_OK)
         serializer = self.get_serializer(users, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def create(self, request, *args, **kwargs) -> Response:
-       serializer = self.get_serializer(data=request.data)
-       serializer.is_valid(raise_exception=True)
-       serializer.save()
-       return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     def retrieve(self, request, pk=None, *args, **kwargs) -> Response:
         user = get_object_or_404(User, pk=pk)

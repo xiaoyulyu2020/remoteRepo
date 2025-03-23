@@ -22,11 +22,3 @@ services:
       - .dbdata:/var/lib/mysql
     ports:
       - 33066:3306
-
-  rabbitmq:
-    image: rabbitmq:3.12-management  # Use the management version for easy monitoring
-    container_name: rabbitmq
-    restart: always
-    ports:
-      - "5672:5672"   # Default RabbitMQ port
-      - "15672:15672" # Web UI for RabbitMQ management
