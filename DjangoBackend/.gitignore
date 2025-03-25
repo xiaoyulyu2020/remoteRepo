@@ -1,5 +1,6 @@
 # Byte-compiled / cached files
-__pycache__/
+
+*/__pycache__/*
 *.py[cod]
 *.swp
 *.swo
@@ -39,3 +40,7 @@ static/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
+# Ignore compiled Python files
+
+__pycache__/
+

@@ -44,15 +44,31 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         product = serializer.save()
 
-        # Send product data to RabbitMQ
-        send_to_queue({
+        # Prepare product data for RabbitMQ
+        product_data = {
             "id": product.id,
             "name": product.name,
             "price": product.price,
             "description": product.description
-        })
+        }
+
+        # Try to send message to RabbitMQ
+        try:
+            send_to_queue(product_data)
+        except Exception as e:
+            # Log the error (make sure you have logging configured)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send product data to RabbitMQ: {str(e)}")
+
+            # You may choose to return a warning message or proceed
+            return Response(
+                {"message": "Product created, but failed to notify RabbitMQ"},
+                status=status.HTTP_201_CREATED
+            )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all()
